@@ -161,16 +161,9 @@ anchor_expand_topk / M_max: 64
 anchor_coef: 0.05
 ```
 
-## Notes for Anonymous Release
+## Notes
 
-Before public or review release:
-
-- Remove local absolute paths.
-- Remove checkpoints, logs, generated notebooks, generated figures, and raw outputs.
-- Do not include raw WSIs or official challenge annotations.
-- Do not redistribute external evaluation-kit code unless its license permits it.
-- Add exact pretrained feature preparation instructions or links if redistribution is not allowed.
-- Replace this note with a clean citation section after acceptance/public release.
+Raw WSIs, official challenge annotations, pretrained feature files, checkpoints, generated figures, raw outputs, and external FROC evaluation-kit files are not redistributed in this repository. Users should obtain the original Camelyon data and compatible pre-extracted feature files following the data format described above.
 
 ## Citation
 
