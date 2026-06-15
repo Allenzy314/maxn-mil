@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environments
+.env
+.venv/
+venv/
+
+# Data and generated outputs
+*.h5
+*.npy
+*.npz
+*.pth
+*.pt
+*.ckpt
+checkpoints*/
+logs*/
+outputs*/
+runs*/
+wandb/
+
+# Notebooks and generated figures
+.ipynb_checkpoints/
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
