@@ -18,6 +18,7 @@ venv/
 checkpoints*/
 logs*/
 outputs*/
+results/
 runs*/
 wandb/
 
