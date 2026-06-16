@@ -172,14 +172,6 @@ The following additional ablation was run on Camelyon17 with ResNet18 feature ba
 | Anchor only | No | Yes | 0.8483 (0.8166, 0.8800) | 0.8538 (0.8206, 0.8870) | 0.8051 (0.7795, 0.8306) | 0.8357 |
 | FCE-MIL | Yes | Yes | **0.8628 (0.8518, 0.8738)** | **0.8687 (0.8573, 0.8800)** | **0.8123 (0.7983, 0.8263)** | **0.8479** |
 
-The per-seed AUC distribution is shown below. Points denote individual seeds, diamonds denote means, and downward triangles indicate low-AUC outliers below the displayed axis range. Compared with the FocusMIL baseline, FCE-MIL achieves a higher mean AUC and a more compact high-AUC distribution across 30 seeds, suggesting improved training stability while maintaining stronger overall performance.
-
-![Camelyon17 ResNet18 seed 1-30 ablation AUC distribution](figures/c17_resnet_seed1_30_ablation_auc_distribution.png)
-
-For completeness, the auxiliary seed-wise fluctuation plot below keeps all 30 seeds and only spaces the x-axis ticks at intervals of five. The table and distribution plot above remain the primary summary.
-
-![Camelyon17 ResNet18 seed 1-30 ablation AUC lines](figures/c17_resnet_seed1_30_ablation_auc_lines.png)
-
 ## Notes
 
 Raw WSIs, official challenge annotations, pretrained feature files, checkpoints, raw outputs, and external FROC evaluation-kit files are not redistributed in this repository. Users should obtain the original Camelyon data and compatible pre-extracted feature files following the data format described above.
