@@ -172,9 +172,9 @@ The following additional ablation was run on Camelyon17 with ResNet18 feature ba
 | Anchor only | No | Yes | 0.8483 (0.8166, 0.8800) | 0.8538 (0.8206, 0.8870) | 0.8051 (0.7795, 0.8306) | 0.8357 |
 | FCE-MIL | Yes | Yes | **0.8628 (0.8518, 0.8738)** | **0.8687 (0.8573, 0.8800)** | **0.8123 (0.7983, 0.8263)** | **0.8479** |
 
-The per-seed AUC trend is shown below. The corresponding per-seed values are provided in `results/c17_resnet_seed1_30_ablation_per_seed.csv`.
+The per-seed AUC distribution is shown below. The corresponding per-seed values are provided in `results/c17_resnet_seed1_30_ablation_per_seed.csv`.
 
-![Camelyon17 ResNet18 seed 1-30 ablation AUC](figures/c17_resnet_seed1_30_ablation_auc.svg)
+![Camelyon17 ResNet18 seed 1-30 ablation AUC distribution](figures/c17_resnet_seed1_30_ablation_auc.svg)
 
 ## Notes
 
