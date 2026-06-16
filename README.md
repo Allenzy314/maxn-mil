@@ -161,9 +161,24 @@ anchor_expand_topk / M_max: 64
 anchor_coef: 0.05
 ```
 
+## Additional Camelyon17 Ablation
+
+The following additional ablation was run on Camelyon17 with ResNet18 feature bags over **30 random seeds (1-30)**. Slide Avg. denotes the mean over slide-level AUC, ACC, and F1. This setting uses the same max-pooling inference rule for all variants.
+
+| Variant | Adaptive top-k | Anchor expansion | Slide AUC | Slide ACC | Slide F1 | Slide Avg. |
+|---|---:|---:|---:|---:|---:|---:|
+| FocusMIL | No | No | 0.8534 (0.8305, 0.8763) | 0.8507 (0.8240, 0.8773) | 0.7967 (0.7782, 0.8151) | 0.8336 |
+| Top-k only | Yes | No | <u>0.8619 (0.8532, 0.8707)</u> | <u>0.8670 (0.8592, 0.8748)</u> | <u>0.8090 (0.7988, 0.8191)</u> | <u>0.8460</u> |
+| Anchor only | No | Yes | 0.8483 (0.8166, 0.8800) | 0.8538 (0.8206, 0.8870) | 0.8051 (0.7795, 0.8306) | 0.8357 |
+| FCE-MIL | Yes | Yes | **0.8628 (0.8518, 0.8738)** | **0.8687 (0.8573, 0.8800)** | **0.8123 (0.7983, 0.8263)** | **0.8479** |
+
+The per-seed AUC trend is shown below. The corresponding per-seed values are provided in `results/c17_resnet_seed1_30_ablation_per_seed.csv`.
+
+![Camelyon17 ResNet18 seed 1-30 ablation AUC](figures/c17_resnet_seed1_30_ablation_auc.svg)
+
 ## Notes
 
-Raw WSIs, official challenge annotations, pretrained feature files, checkpoints, generated figures, raw outputs, and external FROC evaluation-kit files are not redistributed in this repository. Users should obtain the original Camelyon data and compatible pre-extracted feature files following the data format described above.
+Raw WSIs, official challenge annotations, pretrained feature files, checkpoints, raw outputs, and external FROC evaluation-kit files are not redistributed in this repository. Users should obtain the original Camelyon data and compatible pre-extracted feature files following the data format described above.
 
 ## Citation
 
