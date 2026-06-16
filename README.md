@@ -176,6 +176,10 @@ The per-seed AUC distribution is shown below. Points denote individual seeds, di
 
 ![Camelyon17 ResNet18 seed 1-30 ablation AUC distribution](figures/c17_resnet_seed1_30_ablation_auc_distribution.png)
 
+For completeness, the auxiliary seed-wise fluctuation plot below keeps all 30 seeds and only spaces the x-axis ticks at intervals of five. The table and distribution plot above remain the primary summary.
+
+![Camelyon17 ResNet18 seed 1-30 ablation AUC lines](figures/c17_resnet_seed1_30_ablation_auc_lines.png)
+
 ## Notes
 
 Raw WSIs, official challenge annotations, pretrained feature files, checkpoints, raw outputs, and external FROC evaluation-kit files are not redistributed in this repository. Users should obtain the original Camelyon data and compatible pre-extracted feature files following the data format described above.
