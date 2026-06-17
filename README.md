@@ -190,6 +190,17 @@ The following slide-level AUC results were obtained on Camelyon17 with PathGen f
 | FocusMIL | <u>0.9550 (0.9457, 0.9643)</u> |
 | FCE-MIL | **0.9602 (0.9544, 0.9660)** |
 
+## Additional Camelyon17 PathGen Ablation
+
+The following ablation was run on Camelyon17 with PathGen feature bags over seeds 2020-2024. Slide Avg. denotes the mean over slide-level AUC, ACC, and F1.
+
+| Variant | Adaptive top-k | Anchor expansion | Slide AUC | Slide ACC | Slide F1 | Slide Avg. |
+|---|---:|---:|---:|---:|---:|---:|
+| FocusMIL | No | No | 0.9550 (0.9457, 0.9643) | 0.9170 (0.9146, 0.9194) | 0.8883 (0.8855, 0.8911) | 0.9201 |
+| Top-k only | Yes | No | 0.9549 (0.9459, 0.9638) | **0.9210 (0.9132, 0.9288)** | 0.8952 (0.8861, 0.9043) | 0.9237 |
+| Anchor only | No | Yes | **0.9611 (0.9544, 0.9678)** | 0.9180 (0.9130, 0.9230) | 0.8951 (0.8891, 0.9011) | 0.9247 |
+| FCE-MIL | Yes | Yes | 0.9602 (0.9544, 0.9660) | **0.9210 (0.9145, 0.9275)** | **0.8971 (0.8904, 0.9038)** | **0.9261** |
+
 ## Notes
 
 Raw WSIs, official challenge annotations, pretrained feature files, checkpoints, raw outputs, and external FROC evaluation-kit files are not redistributed in this repository. Users should obtain the original Camelyon data and compatible pre-extracted feature files following the data format described above.
