@@ -172,6 +172,24 @@ The following additional ablation was run on Camelyon17 with ResNet18 feature ba
 | Anchor only | No | Yes | 0.8483 (0.8166, 0.8800) | 0.8538 (0.8206, 0.8870) | 0.8051 (0.7795, 0.8306) | 0.8357 |
 | FCE-MIL | Yes | Yes | **0.8628 (0.8518, 0.8738)** | **0.8687 (0.8573, 0.8800)** | **0.8123 (0.7983, 0.8263)** | **0.8479** |
 
+## Additional Camelyon17 PathGen AUC
+
+The following slide-level AUC results were obtained on Camelyon17 with PathGen feature bags over seeds 2020-2024.
+
+| Method | Slide-level AUC |
+|---|---:|
+| ABMIL | 0.9266 (0.9118, 0.9413) |
+| AEM | 0.9279 (0.9175, 0.9384) |
+| CATTMIL | 0.9367 (0.9226, 0.9509) |
+| TransMIL | 0.9202 (0.9084, 0.9320) |
+| MHIM | 0.9413 (0.9225, 0.9601) |
+| DTFD | 0.9394 (0.9209, 0.9579) |
+| Conjunctive | 0.9344 (0.9227, 0.9461) |
+| DSMIL | 0.9119 (0.8874, 0.9364) |
+| mi-Net | 0.9505 (0.9445, 0.9566) |
+| FocusMIL | <u>0.9550 (0.9457, 0.9643)</u> |
+| FCE-MIL | **0.9602 (0.9544, 0.9660)** |
+
 ## Notes
 
 Raw WSIs, official challenge annotations, pretrained feature files, checkpoints, raw outputs, and external FROC evaluation-kit files are not redistributed in this repository. Users should obtain the original Camelyon data and compatible pre-extracted feature files following the data format described above.
