@@ -1,8 +1,8 @@
-# FCE-MIL
+# MaxN-MIL
 
-Implementation for **Feature-Consistent Evidence Expansion for Weakly Supervised Whole Slide Image Classification**.
+Implementation for Max and Neighbors MIL: Similarity-Guided Max-Pooling Multiple Instance Learning for Weakly Supervised Whole Slide Image Classification.
 
-FCE-MIL is a training-time evidence expansion strategy for regularized max-pooling MIL. It improves the instance scorer by expanding supervision from high-confidence evidence patches to feature-consistent candidate patches, while keeping the inference-time slide prediction max-pooling-based.
+MaxN-MIL is a training-time instance expansion strategy for regularized max-pooling MIL. It improves the instance scorer by expanding supervision to adaptive top-ranked instances and similarity-guided neighbor candidates, while keeping the inference-time slide prediction max-pooling-based.
 
 ## Repository Contents
 
