@@ -90,7 +90,7 @@ class AuxiliaryYAdaptiveTopK(nn.Module):
             return pooled, int(kept_vals.numel())
 
         if pooling == "anchor_mean":
-            # Placeholder. FocusmilSingleBranch overrides this with raw-feature
+            # Placeholder. MaxNMilSingleBranch overrides this with raw-feature
             # anchor-similarity pooling after it has access to raw patch features.
             return max_score, 1
 
@@ -122,7 +122,7 @@ class AuxiliaryYAdaptiveTopK(nn.Module):
         mean_selected_k = float(sum(selected_ks) / len(selected_ks)) if selected_ks else 0.0
         return M, loc_ins, loc_ins_logits, mean_selected_k
 
-class FocusmilSingleBranch(nn.Module):
+class MaxNMilSingleBranch(nn.Module):
     """
     Simplified: only single-branch, without diff_loss or third_loss.
     """
@@ -145,7 +145,7 @@ class FocusmilSingleBranch(nn.Module):
         anchor_expand_topk=64,
         anchor_min_score=0.9,
     ):
-        super(FocusmilSingleBranch, self).__init__()
+        super(MaxNMilSingleBranch, self).__init__()
         self.encoder = VariationalEncoder(latent_dim=instance_latent_dim, in_dim=in_dim)
         self.aux_y = AuxiliaryYAdaptiveTopK(
             instance_latent_dim=instance_latent_dim,
@@ -544,7 +544,7 @@ def training_procedure(FLAGS, train_loader, val_loader, device, model_save_path)
     Return: (model, best_val_metrics)
     """
     # === Initialize single-branch model ===
-    model = FocusmilSingleBranch(
+    model = MaxNMilSingleBranch(
         instance_latent_dim=FLAGS.instance_latent_dim,
         in_dim=FLAGS.in_dim,
         train_pooling=FLAGS.train_pooling,
@@ -569,7 +569,7 @@ def training_procedure(FLAGS, train_loader, val_loader, device, model_save_path)
 
     n_params = count_trainable_parameters(model)
     print(
-        f" => [Anchor-Expand TopK FocusMIL] #Params={n_params}, batch_size={FLAGS.batch_size}, "
+        f" => [MaxN-MIL] #Params={n_params}, batch_size={FLAGS.batch_size}, "
         f"epochs={FLAGS.epochs}, train_pooling={FLAGS.train_pooling}, "
         f"eval_pooling={FLAGS.eval_pooling}, topk={FLAGS.topk}, topk_max={FLAGS.topk_max}, "
         f"adaptive_gamma={FLAGS.adaptive_gamma}, topk_gamma={FLAGS.topk_gamma}, "
@@ -671,7 +671,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--early_stop_patience', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=3)
-    parser.add_argument('--checkpoint_dir', type=str, default='checkpoints_anchor_expand_c16')
+    parser.add_argument('--checkpoint_dir', type=str, default='checkpoints/c16_maxn')
     parser.add_argument('--pooling', type=str, default=None, choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'],
                         help='Deprecated alias for --train_pooling.')
     parser.add_argument('--train_pooling', type=str, default='adaptive_topk', choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
@@ -732,7 +732,7 @@ if __name__ == '__main__':
        
         model_save_path = os.path.join(
             FLAGS.checkpoint_dir,
-            f"best_focusmil_anchor_expand_train-{FLAGS.train_pooling}"
+            f"best_maxn_train-{FLAGS.train_pooling}"
             f"_eval-{FLAGS.eval_pooling}_neg{FLAGS.neg_coef}"
             f"_acoef{FLAGS.anchor_coef}_asim{FLAGS.anchor_sim_threshold}"
             f"_atop{FLAGS.anchor_expand_topk}_seed{seed}.pth"
@@ -772,7 +772,7 @@ if __name__ == '__main__':
         print(f"{name}: {mean:.4f} ({conf_interval[0]:.4f}, {conf_interval[1]:.4f})")
 
     print("\n" + "="*52)
-    print("  FINAL ANCHOR-EXPAND TOPK FOCUSMIL RESULTS")
+    print("  FINAL MAXN-MIL RESULTS")
     print("="*52)
     print_final_stats("Slide-level AUC ", history['slide_auc'])
     print_final_stats("Slide-level ACC ", history['slide_acc'])

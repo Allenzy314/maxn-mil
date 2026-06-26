@@ -15,7 +15,7 @@ from camelyon17_utils import (
     parse_seed_list,
     mean_ci,
 )
-from fce_camelyon16 import FocusmilSingleBranch
+from maxn_camelyon16 import MaxNMilSingleBranch
 
 
 def train_one_epoch(model, train_loader, optimizer, device):
@@ -54,7 +54,7 @@ def train_one_epoch(model, train_loader, optimizer, device):
 
 
 def training_procedure(args, train_loader, val_loader, device, model_save_path):
-    model = FocusmilSingleBranch(
+    model = MaxNMilSingleBranch(
         instance_latent_dim=args.instance_latent_dim,
         in_dim=args.in_dim,
         train_pooling=args.train_pooling,
@@ -77,7 +77,7 @@ def training_procedure(args, train_loader, val_loader, device, model_save_path):
 
     n_params = count_trainable_parameters(model)
     print(
-        f"[INIT C17 Anchor-Expand] #Params={n_params}, batch_size={args.batch_size}, epochs={args.epochs}, "
+        f"[INIT C17 MaxN-MIL] #Params={n_params}, batch_size={args.batch_size}, epochs={args.epochs}, "
         f"train_pooling={args.train_pooling}, eval_pooling={args.eval_pooling}, topk_max={args.topk_max}, "
         f"adaptive_gamma={args.adaptive_gamma}, anchor_coef={args.anchor_coef}, "
         f"anchor_sim_threshold={args.anchor_sim_threshold}, anchor_expand_topk={args.anchor_expand_topk}"
@@ -144,7 +144,7 @@ def main():
     parser.add_argument('--early_stop_start_epoch', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=3)
     parser.add_argument('--num_workers', type=int, default=4)
-    parser.add_argument('--checkpoint_dir', type=str, default='checkpoints/c17_fce')
+    parser.add_argument('--checkpoint_dir', type=str, default='checkpoints/c17_maxn')
 
     parser.add_argument('--train_pooling', type=str, default='adaptive_topk', choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
     parser.add_argument('--eval_pooling', type=str, default='max', choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
@@ -186,7 +186,7 @@ def main():
 
         ckpt = os.path.join(
             args.checkpoint_dir,
-            f"best_c17_fce_train-{args.train_pooling}_eval-{args.eval_pooling}_acoef{args.anchor_coef}"
+            f"best_c17_maxn_train-{args.train_pooling}_eval-{args.eval_pooling}_acoef{args.anchor_coef}"
             f"_asim{args.anchor_sim_threshold}_atop{args.anchor_expand_topk}_seed{seed}.pth"
         )
         model, best_val_metrics = training_procedure(args, train_loader, val_loader, device, ckpt)
@@ -216,7 +216,7 @@ def main():
     f1_m, f1_l, f1_h = mean_ci(f1s)
 
     print('\n====================================================')
-    print('  FINAL CAMELYON17 ANCHOR-EXPAND FOCUSMIL RESULTS')
+    print('  FINAL CAMELYON17 MAXN-MIL RESULTS')
     print('====================================================')
     print(f'Slide-level AUC : {auc_m:.4f} ({auc_l:.4f}, {auc_h:.4f})')
     print(f'Slide-level ACC : {acc_m:.4f} ({acc_l:.4f}, {acc_h:.4f})')

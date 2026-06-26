@@ -1,29 +1,29 @@
 # MaxN-MIL
 
-Implementation for Max and Neighbors MIL: Similarity-Guided Max-Pooling Multiple Instance Learning for Weakly Supervised Whole Slide Image Classification.
+Implementation for **Max and Neighbors MIL: Similarity-Guided Max-Pooling Multiple Instance Learning for Weakly Supervised Whole Slide Image Classification**.
 
 MaxN-MIL is a training-time instance expansion strategy for regularized max-pooling MIL. It improves the instance scorer by expanding supervision to adaptive top-ranked instances and similarity-guided neighbor candidates, while keeping the inference-time slide prediction max-pooling-based.
 
 ## Repository Contents
 
 ```text
-fce_code/
-  fce_camelyon16.py       # FCE-MIL training on Camelyon16 feature bags
-  fce_camelyon17.py       # FCE-MIL training on Camelyon17 feature bags
-  camelyon17_utils.py     # Camelyon17 split, dataloader, and evaluation helpers
+maxn_code/
+  maxn_camelyon16.py     # MaxN-MIL training on Camelyon16 feature bags
+  maxn_camelyon17.py     # MaxN-MIL training on Camelyon17 feature bags
+  camelyon17_utils.py    # Camelyon17 split, dataloader, and evaluation helpers
 requirements.txt
 README.md
 ```
 
-The repository contains the FCE-MIL training code used for the paper experiments. It does not redistribute raw WSIs, official annotations, pretrained feature files, checkpoints, generated heatmaps, or external FROC evaluation files.
+The repository contains the MaxN-MIL training code used for the paper experiments. It does not redistribute raw WSIs, official annotations, pretrained feature files, checkpoints, generated heatmaps, or external FROC evaluation files.
 
 ## Environment
 
 Create a Python environment and install dependencies:
 
 ```bash
-conda create -n fce python=3.9
-conda activate fce
+conda create -n maxn python=3.9
+conda activate maxn
 pip install -r requirements.txt
 ```
 
@@ -96,48 +96,48 @@ The metadata CSV should include `slide_id` and `center` columns. Following the c
 
 All paths below are placeholders and should be replaced with local paths.
 
-### Camelyon16 FCE-MIL
+### Camelyon16 MaxN-MIL
 
 ```bash
-python fce_code/fce_camelyon16.py \
+python maxn_code/maxn_camelyon16.py \
   --dataset_dir /path/to/camelyon16_features \
   --seeds 1,2,3,4,5 \
   --train_pooling adaptive_topk \
   --eval_pooling max \
   --topk_max 16 \
-  --topk_gamma 1.0 \
+  --topk_gamma 0.5 \
   --anchor_coef 0.05 \
   --anchor_sim_threshold 0.75 \
   --anchor_expand_topk 64 \
   --anchor_min_score 0.9 \
   --batch_size 3 \
   --epochs 100 \
-  --checkpoint_dir checkpoints/c16_fce
+  --checkpoint_dir checkpoints/c16_maxn
 ```
 
-### Camelyon17 FCE-MIL
+### Camelyon17 MaxN-MIL
 
 ```bash
-python fce_code/fce_camelyon17.py \
+python maxn_code/maxn_camelyon17.py \
   --file_path /path/to/camelyon17_features.h5 \
   --csv_path /path/to/camelyon17.csv \
   --seeds 2021,2022,2023,2024,2025 \
   --train_pooling adaptive_topk \
   --eval_pooling max \
   --topk_max 16 \
-  --topk_gamma 1.0 \
+  --topk_gamma 0.5 \
   --anchor_coef 0.05 \
   --anchor_sim_threshold 0.75 \
   --anchor_expand_topk 64 \
   --anchor_min_score 0.9 \
   --batch_size 3 \
   --epochs 100 \
-  --checkpoint_dir checkpoints/c17_fce
+  --checkpoint_dir checkpoints/c17_maxn
 ```
 
 ## FROC Evaluation
 
-For Camelyon16 localization, FROC was computed using the FocusMIL-provided Camelyon16 FROC evaluation files together with the official Camelyon16 tumor masks. These external evaluation files are not redistributed in this repository. To reproduce the paper numbers, train FCE-MIL with the scripts above and run the external FocusMIL FROC kit under the same protocol.
+For Camelyon16 localization, FROC was computed using the FocusMIL-provided Camelyon16 FROC evaluation files together with the official Camelyon16 tumor masks. These external evaluation files are not redistributed in this repository. To reproduce the paper numbers, train MaxN-MIL with the scripts above and run the external FocusMIL FROC kit under the same protocol.
 
 Default FROC settings used by the paper:
 
@@ -150,27 +150,27 @@ ITC threshold: 200 um
 FROC points: 0.25, 0.5, 1, 2, 4, 8 FP/slide
 ```
 
-## Main FCE-MIL Hyperparameters
+## Main MaxN-MIL Hyperparameters
 
 ```text
 K_max / topk_max: 16
-topk_gamma: 1.0
-anchor_min_score: 0.9
-anchor_sim_threshold: 0.75
-anchor_expand_topk / M_max: 64
-anchor_coef: 0.05
+gamma / topk_gamma: 0.5
+tau_anc / anchor_min_score: 0.9
+tau_s / anchor_sim_threshold: 0.75
+M_max / anchor_expand_topk: 64
+lambda_cand / anchor_coef: 0.05
 ```
 
 ## Additional Camelyon17 Ablation
 
 The following additional ablation was run on Camelyon17 with ResNet18 feature bags over **30 random seeds (1-30)**. Slide Avg. denotes the mean over slide-level AUC, ACC, and F1. This setting uses the same max-pooling inference rule for all variants.
 
-| Variant | Adaptive top-k | Anchor expansion | Slide AUC | Slide ACC | Slide F1 | Slide Avg. |
+| Variant | Adaptive top-k | Neighbor expansion | Slide AUC | Slide ACC | Slide F1 | Slide Avg. |
 |---|---:|---:|---:|---:|---:|---:|
 | FocusMIL | No | No | 0.8534 (0.8305, 0.8763) | 0.8507 (0.8240, 0.8773) | 0.7967 (0.7782, 0.8151) | 0.8336 |
 | Top-k only | Yes | No | <u>0.8619 (0.8532, 0.8707)</u> | <u>0.8670 (0.8592, 0.8748)</u> | <u>0.8090 (0.7988, 0.8191)</u> | <u>0.8460</u> |
-| Anchor only | No | Yes | 0.8483 (0.8166, 0.8800) | 0.8538 (0.8206, 0.8870) | 0.8051 (0.7795, 0.8306) | 0.8357 |
-| FCE-MIL | Yes | Yes | **0.8628 (0.8518, 0.8738)** | **0.8687 (0.8573, 0.8800)** | **0.8123 (0.7983, 0.8263)** | **0.8479** |
+| Neighbor only | No | Yes | 0.8483 (0.8166, 0.8800) | 0.8538 (0.8206, 0.8870) | 0.8051 (0.7795, 0.8306) | 0.8357 |
+| MaxN-MIL | Yes | Yes | **0.8628 (0.8518, 0.8738)** | **0.8687 (0.8573, 0.8800)** | **0.8123 (0.7983, 0.8263)** | **0.8479** |
 
 ## Additional Camelyon17 PathGen AUC
 
@@ -188,18 +188,18 @@ The following slide-level AUC results were obtained on Camelyon17 with PathGen f
 | DSMIL | 0.9119 (0.8874, 0.9364) |
 | mi-Net | 0.9505 (0.9445, 0.9566) |
 | FocusMIL | <u>0.9550 (0.9457, 0.9643)</u> |
-| FCE-MIL | **0.9602 (0.9544, 0.9660)** |
+| MaxN-MIL | **0.9602 (0.9544, 0.9660)** |
 
 ## Additional Camelyon17 PathGen Ablation
 
 The following ablation was run on Camelyon17 with PathGen feature bags over seeds 2020-2024. Slide Avg. denotes the mean over slide-level AUC, ACC, and F1.
 
-| Variant | Adaptive top-k | Anchor expansion | Slide AUC | Slide ACC | Slide F1 | Slide Avg. |
+| Variant | Adaptive top-k | Neighbor expansion | Slide AUC | Slide ACC | Slide F1 | Slide Avg. |
 |---|---:|---:|---:|---:|---:|---:|
 | FocusMIL | No | No | 0.9550 (0.9457, 0.9643) | 0.9170 (0.9146, 0.9194) | 0.8883 (0.8855, 0.8911) | 0.9201 |
 | Top-k only | Yes | No | 0.9549 (0.9459, 0.9638) | **0.9210 (0.9132, 0.9288)** | 0.8952 (0.8861, 0.9043) | 0.9237 |
-| Anchor only | No | Yes | **0.9611 (0.9544, 0.9678)** | 0.9180 (0.9130, 0.9230) | 0.8951 (0.8891, 0.9011) | 0.9247 |
-| FCE-MIL | Yes | Yes | 0.9602 (0.9544, 0.9660) | **0.9210 (0.9145, 0.9275)** | **0.8971 (0.8904, 0.9038)** | **0.9261** |
+| Neighbor only | No | Yes | **0.9611 (0.9544, 0.9678)** | 0.9180 (0.9130, 0.9230) | 0.8951 (0.8891, 0.9011) | 0.9247 |
+| MaxN-MIL | Yes | Yes | 0.9602 (0.9544, 0.9660) | **0.9210 (0.9145, 0.9275)** | **0.8971 (0.8904, 0.9038)** | **0.9261** |
 
 ## Notes
 
