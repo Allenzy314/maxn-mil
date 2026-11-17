@@ -321,5 +321,36 @@ class RecipeAndCLITests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
 
 
+class AnonymityTests(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("identity_scan", ROOT / "scripts/check_anonymity.py")
+        self.checker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.checker)
+
+    def test_private_terms_paths_and_contacts_are_detected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            contact = "someone" + "@" + "example.invalid"
+            local_path = "/" + "home" + "/" + "someone" + "/features.h5"
+            (folder / "code.txt").write_text("Hidden Contributor\n" + contact + "\n" + local_path + "\n")
+            reasons = {reason for _, _, reason in self.checker.scan_files(folder, ["code.txt"], ["hidden contributor"])}
+            self.assertTrue({"identity_term", "email", "personal_path"} <= reasons)
+
+    def test_clean_contents_and_binary_rejection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            (folder / "code.txt").write_text("MaxN-MIL, cosine threshold 0.75\n")
+            self.assertEqual(self.checker.scan_files(folder, ["code.txt"], ["Hidden Contributor"]), [])
+            (folder / "opaque.bin").write_bytes(bytes([255, 0]))
+            self.assertEqual(self.checker.scan_files(folder, ["opaque.bin"])[0][2], "binary_requires_manual_review")
+
+    def test_identity_in_filename_is_detected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            (folder / "private_handle.py").write_text("pass\n")
+            findings = self.checker.scan_files(folder, ["private_handle.py"], ["private_handle"])
+            self.assertIn(("private_handle.py", 0, "identity_in_filename"), findings)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -30,3 +30,6 @@ wandb/
 *.jpeg
 *.tif
 *.tiff
+
+# Local release archives
+*.zip

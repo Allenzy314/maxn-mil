@@ -18,6 +18,7 @@
 | Current similarity-threshold table | `docs/similarity_results.csv` |
 | Current parameter counts | `docs/parameter_counts.csv` |
 | Synthetic CPU regression coverage | `tests/test_release.py` |
+| Pre-release identity scan | `scripts/check_anonymity.py` |
 
 Both training scripts support direct script invocation and package invocation. The shared model is present in this repository; it is not imported from a private research directory. Runtime outputs go to user-specified directories, and evaluation refuses to overwrite an existing result directory.
 

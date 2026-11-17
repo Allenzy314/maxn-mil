@@ -166,6 +166,14 @@ CUDA_VISIBLE_DEVICES='' python -m unittest discover -s tests -v
 
 Tests use synthetic CPU data, do not train on Camelyon, and do not start GPU jobs.
 
+Before sharing a release, run the identity scan with a private list of names, handles, email addresses and affiliations kept outside this repository:
+
+```bash
+python scripts/check_anonymity.py --terms-file /path/to/private-terms.txt
+```
+
+The scan covers release files, not Git commit metadata or the external anonymous mirror. Share the anonymous view or a history-free source archive, not a clone of the identified source repository. Third-party reference credits are retained.
+
 ## Citation
 
 Citation will be added after publication.
