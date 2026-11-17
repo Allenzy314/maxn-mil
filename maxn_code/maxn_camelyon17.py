@@ -5,17 +5,20 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data_utils
 
-from camelyon17_utils import (
-    build_HDF5_feat_dataset,
-    camelyon17_collate_fn,
-    evaluate_model,
-    evaluate_model_with_perclass,
-    count_trainable_parameters,
-    set_seed,
-    parse_seed_list,
-    mean_ci,
-)
-from maxn_camelyon16 import MaxNMilSingleBranch
+if __package__:
+    from .camelyon17_utils import (
+        build_HDF5_feat_dataset, camelyon17_collate_fn, evaluate_model,
+        evaluate_model_with_perclass, count_trainable_parameters,
+        set_seed, parse_seed_list, mean_ci,
+    )
+    from .maxn_camelyon16 import MaxNMilSingleBranch
+else:
+    from camelyon17_utils import (
+        build_HDF5_feat_dataset, camelyon17_collate_fn, evaluate_model,
+        evaluate_model_with_perclass, count_trainable_parameters,
+        set_seed, parse_seed_list, mean_ci,
+    )
+    from maxn_camelyon16 import MaxNMilSingleBranch
 
 
 def train_one_epoch(model, train_loader, optimizer, device):
@@ -146,8 +149,8 @@ def main():
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints/c17_maxn')
 
-    parser.add_argument('--train_pooling', type=str, default='adaptive_topk', choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
-    parser.add_argument('--eval_pooling', type=str, default='max', choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
+    parser.add_argument('--train_pooling', type=str, default='adaptive_topk', choices=['max', 'mean', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
+    parser.add_argument('--eval_pooling', type=str, default='max', choices=['max', 'mean', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
     parser.add_argument('--topk', type=int, default=5)
     parser.add_argument('--topk_max', type=int, default=16)
     parser.add_argument('--adaptive_gamma', type=float, default=0.5)

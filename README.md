@@ -1,209 +1,170 @@
 # MaxN-MIL
 
-Implementation for **Max and Neighbors MIL: Similarity-Guided Max-Pooling Multiple Instance Learning for Weakly Supervised Whole Slide Image Classification**.
+Code for **Max and Neighbors: Similarity-Guided Max-Pooling Multiple Instance Learning for Whole Slide Image Classification**.
 
-MaxN-MIL is a training-time instance expansion strategy for regularized max-pooling MIL. It improves the instance scorer by expanding supervision to adaptive top-ranked instances and similarity-guided neighbor candidates, while keeping the inference-time slide prediction max-pooling-based.
+MaxN-MIL expands training supervision through an adaptive top-ranked pool and feature-similar neighbors of a confident anchor. Inference uses the maximum instance probability, with the latent mean instead of random sampling.
 
-## Repository Contents
+## Release Contents
 
-```text
-maxn_code/
-  maxn_camelyon16.py     # MaxN-MIL training on Camelyon16 feature bags
-  maxn_camelyon17.py     # MaxN-MIL training on Camelyon17 feature bags
-  camelyon17_utils.py    # Camelyon17 split, dataloader, and evaluation helpers
-requirements.txt
-README.md
-```
+- C16 ResNet18/CTransPath and C17 training, including module switches.
+- Explicit paper recipes in `scripts/run_experiment.py`.
+- Frozen-checkpoint evaluation and patch CSV export.
+- Archived mask-based FROC, offline tumor-burden analysis and summary statistics.
+- Synthetic CPU-only regression tests.
+- Current manuscript tables in `docs/main_results.csv`.
 
-The repository contains the MaxN-MIL training code used for the paper experiments. It does not redistribute raw WSIs, official annotations, pretrained feature files, checkpoints, generated heatmaps, or external FROC evaluation files.
+This is the classification MaxN-MIL release, not an all-baseline benchmark bundle. Baseline implementations and the exploratory industrial/survival tasks are not included. Raw slides, masks, features, coordinates, weights and private research logs are not redistributed. See [release scope](docs/RELEASE_SCOPE.md) and [protocol](docs/PROTOCOL.md).
 
 ## Environment
 
-Create a Python environment and install dependencies:
-
 ```bash
-conda create -n maxn python=3.9
+conda create -n maxn python=3.10
 conda activate maxn
 pip install -r requirements.txt
+# Optional, for mask-based FROC:
+pip install -r requirements-froc.txt
 ```
 
-Install PyTorch according to your CUDA version if the default pip wheel is not suitable:
+Install a PyTorch build compatible with your hardware. Evaluation defaults to CPU unless a device is specified.
+
+## Data Format
+
+### Camelyon16
+
+For both the `train` and `val` prefixes, supply:
+
+```text
+<split>_patch_feat.h5                         # dataset_1: [patches, D]
+<split>_patch_label.npy                       # patch GT, evaluation only
+<split>_patch_corresponding_slide_label.npy   # slide label per patch
+<split>_patch_corresponding_slide_index.npy   # contiguous zero-based bag ID
+<split>_patch_corresponding_slide_name.npy    # slide name per patch
+```
+
+All arrays are row-aligned. `train` is the training pool, internally split 80:20. Despite its filename, `val` is the external test cohort, not the internal validation set. The feature package contains 269 training-pool bags and 128 test bags. ResNet18 and CTransPath features have 512 and 768 dimensions, respectively. Patch labels do not enter the training loss or checkpoint-selection criterion.
+
+For FROC, obtain aligned level-0 patch top-left coordinates and official tumor masks. Coordinates cannot be inferred from patch order.
+
+### Camelyon17
+
+Supply an HDF5 file and metadata CSV. Each slide group contains `feat`, `coords` and a `label` attribute. The CSV contains `slide_id` and zero-based `center`. Labels are binarized as 0 versus 1/2/3. Centers 3 and 4 form the test set; the other centers are split 80:20 using the run seed. The released package used in the experiments yields 239 training, 60 validation and 200 test bags.
+
+## Training Recipes
+
+These commands print the configuration without training. Remove `--dry-run` to train.
 
 ```bash
-# Example only. Choose the command matching your CUDA version from pytorch.org.
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+python scripts/run_experiment.py c16_r18 \
+  --data /path/to/c16_resnet18 --output /path/to/runs/c16_r18 --dry-run
+
+python scripts/run_experiment.py c16_ctrans \
+  --data /path/to/c16_ctranspath --output /path/to/runs/c16_ctrans --dry-run
+
+python scripts/run_experiment.py c17_r18 \
+  --data /path/to/c17_features.h5 --csv /path/to/camelyon17.csv \
+  --output /path/to/runs/c17_r18 --dry-run
 ```
 
-If you use the external FocusMIL/Camelyon16 FROC evaluation kit with official Camelyon masks, OpenSlide may also require the system library:
+| Setting | C16 ResNet18 | C16 CTransPath | C17 ResNet18 |
+|---|---:|---:|---:|
+| Input / latent dimensions | 512 / 35 | 768 / 35 | 512 / 24 |
+| KL / classification coefficients | 0.01 / 1 | 0.01 / 1 | 1 / 100 |
+| Maximum epochs | 100 | 100 | 100 |
+| Early-stop patience | 10 | 10 | Disabled |
+| Checkpoint criterion | Validation slide AUC | Validation slide AUC | Validation slide AUC |
+| Split seeds / runs | 6-10 / 5 | 1-30 / 30 | 2021-2025 / 5 |
+
+Shared settings are batch size 3, AdamW learning rate and weight decay `1e-4`, scan limit 16, neighbor coefficient 0.05, cosine threshold 0.75, neighbor budget 64, anchor confidence 0.9, and max inference.
+
+**The two gamma parameters are different.** Paper gamma is `--adaptive_gamma 0.5`, controlling the inclusion threshold. `--topk_gamma 1.0` means the selected probabilities are averaged without mixing in an additional max term. The old examples incorrectly used `--topk_gamma 0.5`.
+
+Equivalent C16 ResNet18 command:
 
 ```bash
-sudo apt-get install openslide-tools
+python -m maxn_code.maxn_camelyon16 \
+  --dataset_dir /path/to/c16_resnet18 --in_dim 512 --instance_latent_dim 35 \
+  --seeds 6,7,8,9,10 --kl_divergence_coef 0.01 --aux_loss_multiplier_y 1 \
+  --train_pooling adaptive_topk --eval_pooling max \
+  --topk_max 16 --adaptive_gamma 0.5 --topk_gamma 1.0 \
+  --anchor_coef 0.05 --anchor_sim_threshold 0.75 \
+  --anchor_expand_topk 64 --anchor_min_score 0.9 \
+  --batch_size 3 --epochs 100 --early_stop_patience 10 \
+  --checkpoint_dir /path/to/checkpoints
 ```
 
-## Data Sources and Format
+Historical C16 seeds fix the internal split but do not reset the global training RNG per run. This behavior is retained, so rerunning a split seed does not guarantee identical weights. C17 resets Python, NumPy and PyTorch RNGs per seed. C16 retains its training-loss-based learning-rate scheduler; C17 does not use that scheduler.
 
-The training scripts assume pre-extracted patch features. Raw WSIs and official annotations are not redistributed. In the paper experiments, Camelyon16 ResNet18 and CTransPath feature bags follow the feature package/preprocessing used by FocusMIL, while Camelyon17 ResNet18 feature bags follow the feature package/split released with AEM. Users should download the original Camelyon data and obtain or extract compatible feature bags before running the scripts.
+The original pooled-probability input to `BCEWithLogitsLoss` is retained to match archived experiments, not silently replaced with corrected BCE.
 
-### Camelyon16 Feature Directory
+## Components and Similarity Sensitivity
 
-The Camelyon16 scripts expect a directory containing files such as:
-
-```text
-train_patch_feat.h5
-train_patch_label.npy
-train_patch_corresponding_slide_label.npy
-train_patch_corresponding_slide_index.npy
-train_patch_corresponding_slide_name.npy
-
-val_patch_feat.h5
-val_patch_label.npy
-val_patch_corresponding_slide_label.npy
-val_patch_corresponding_slide_index.npy
-val_patch_corresponding_slide_name.npy
-```
-
-The HDF5 feature file should contain `dataset_1` with shape `[N_patches, D]`. The NumPy arrays are row-aligned with this feature matrix:
-
-```text
-*_patch_label.npy                       # patch-level labels, used only for evaluation/analysis
-*_patch_corresponding_slide_label.npy   # slide-level label for each patch row
-*_patch_corresponding_slide_index.npy   # integer slide index for each patch row
-*_patch_corresponding_slide_name.npy    # slide name for each patch row
-```
-
-During training, rows with the same slide index are grouped as one MIL bag.
-
-### Camelyon17 Feature File
-
-The Camelyon17 scripts expect an HDF5 feature file and a metadata CSV:
-
-```text
-patch_feats_pretrain_natural_supervised.h5
-camelyon17.csv
-```
-
-The HDF5 file is organized by slide ID. Each slide group should contain:
-
-```text
-/<slide_id>/feat      # [N_patches, D] patch features
-/<slide_id>/coords    # [N_patches, 2] level-0 patch coordinates
-attrs['label']        # original Camelyon17 label
-```
-
-The metadata CSV should include `slide_id` and `center` columns. Following the common OOD split, slides with zero-indexed `center >= 3` are used as the test set, while the remaining slides are split into training and validation sets.
-
-## Training Examples
-
-All paths below are placeholders and should be replaced with local paths.
-
-### Camelyon16 MaxN-MIL
+Use `--variant full`, `topk_only`, `anchor_only`, `max_only` or `mean`. These switches alter only training pooling and neighbor supervision. The same-weight max-only control is not the historical FocusMIL reference, whose KL coefficient differs.
 
 ```bash
-python maxn_code/maxn_camelyon16.py \
-  --dataset_dir /path/to/camelyon16_features \
-  --seeds 1,2,3,4,5 \
-  --train_pooling adaptive_topk \
-  --eval_pooling max \
-  --topk_max 16 \
-  --topk_gamma 0.5 \
-  --anchor_coef 0.05 \
-  --anchor_sim_threshold 0.75 \
-  --anchor_expand_topk 64 \
-  --anchor_min_score 0.9 \
-  --batch_size 3 \
-  --epochs 100 \
-  --checkpoint_dir checkpoints/c16_maxn
+python scripts/run_experiment.py c16_r18 --variant topk_only \
+  --data /path/to/c16_resnet18 --output /path/to/runs/topk --dry-run
+
+python scripts/run_experiment.py c16_r18 --similarity 0.9 \
+  --data /path/to/c16_resnet18 --output /path/to/runs/sim09 --dry-run
 ```
 
-### Camelyon17 MaxN-MIL
+Use similarity 0.5, 0.75 or 0.9 for sensitivity; the reference remains 0.75.
+
+## Evaluate Saved Weights
 
 ```bash
-python maxn_code/maxn_camelyon17.py \
-  --file_path /path/to/camelyon17_features.h5 \
-  --csv_path /path/to/camelyon17.csv \
-  --seeds 2021,2022,2023,2024,2025 \
-  --train_pooling adaptive_topk \
-  --eval_pooling max \
-  --topk_max 16 \
-  --topk_gamma 0.5 \
-  --anchor_coef 0.05 \
-  --anchor_sim_threshold 0.75 \
-  --anchor_expand_topk 64 \
-  --anchor_min_score 0.9 \
-  --batch_size 3 \
-  --epochs 100 \
-  --checkpoint_dir checkpoints/c17_maxn
+python -m maxn_code.evaluate_checkpoint c16 \
+  --checkpoint /path/to/checkpoint.pth --data /path/to/c16_resnet18 \
+  --method MaxN-MIL --seed 6 --output /path/to/evaluation/seed6 \
+  --coords /path/to/val_patch_coords.npy
+
+python -m maxn_code.evaluate_checkpoint c17 \
+  --checkpoint /path/to/checkpoint.pth --data /path/to/c17_features.h5 \
+  --csv /path/to/camelyon17.csv --method MaxN-MIL --seed 2021 \
+  --output /path/to/evaluation/c17_seed2021
 ```
 
-## FROC Evaluation
+Dimensions are inferred from the checkpoint and validated against the data. Outputs are `metrics.json`, aligned `predictions.npz`, and, when C16 coordinates are supplied, a `froc_csv/` directory of per-slide `score,x,y` files. Coordinates remain top-left locations. Existing evaluation outputs are not overwritten.
 
-For Camelyon16 localization, FROC was computed using the FocusMIL-provided Camelyon16 FROC evaluation files together with the official Camelyon16 tumor masks. These external evaluation files are not redistributed in this repository. To reproduce the paper numbers, train MaxN-MIL with the scripts above and run the external FocusMIL FROC kit under the same protocol.
+Historical slide ACC/F1 and patch F1 use test-cohort Youden thresholds. This reproduces the archived development protocol, not threshold-independent held-out evaluation. AUC and AUPRC do not require a classification threshold.
 
-Default FROC settings used by the paper:
+## FROC and Tumor-Burden Analysis
 
-```text
-Evaluation level: 5
-Level-0 resolution: 0.243 um/pixel
-Detection point: patch center
-Tolerance: 90 um
-ITC threshold: 200 um
-FROC points: 0.25, 0.5, 1, 2, 4, 8 FP/slide
+```bash
+python -m maxn_code.froc \
+  --csv_root /path/to/evaluation --seed_prefix seed --seeds 6,7,8,9,10 \
+  --mask_dir /path/to/official_masks --out_dir /path/to/froc_results
+
+python -m maxn_code.analyze_predictions \
+  --inputs /path/to/evaluation/seed*/predictions.npz \
+  --mask_dir /path/to/official_masks --output /path/to/burden_results
 ```
 
-## Main MaxN-MIL Hyperparameters
+The FROC command accepts per-slide CSVs either directly inside each seed directory or in its `froc_csv/` subdirectory. Defaults match the archived recipe: level 5, fixed level-0 resolution 0.243 um/pixel, patch-center hits, 90 um tolerance, 200 um ITC threshold, center offset 256 pixels, no NMS and no candidate cap. Sensitivity is averaged at 0.25, 0.5, 1, 2, 4 and 8 FP/slide. This is the archived Camelyon-style evaluator, not a claim of an untouched official challenge scorer.
 
-```text
-K_max / topk_max: 16
-gamma / topk_gamma: 0.5
-tau_anc / anchor_min_score: 0.9
-tau_s / anchor_sim_threshold: 0.75
-M_max / anchor_expand_topk: 64
-lambda_cand / anchor_coef: 0.05
-```
+Burden groups use GT-positive patch proportions in positive slides: small below 1%, medium from 1% to below 10%, large at least 10%. The groups share negative controls. Historical exclusions `test_021` and `test_114` are retained for FROC and burden strata, without relabeling. Global test thresholds stay fixed across strata.
 
-## Additional Camelyon17 Ablation
+Without masks and exported CSVs, FROC is explicitly unavailable. Offline analysis also writes sample-SD summaries and Average Rank. All included methods must use matching cohorts, seeds and available metrics for a rank comparison.
 
-The following additional ablation was run on Camelyon17 with ResNet18 feature bags over **30 random seeds (1-30)**. Slide Avg. denotes the mean over slide-level AUC, ACC, and F1. This setting uses the same max-pooling inference rule for all variants.
+## Current Manuscript Results
 
-| Variant | Adaptive top-k | Neighbor expansion | Slide AUC | Slide ACC | Slide F1 | Slide Avg. |
+MaxN-MIL means and sample standard deviations:
+
+| Setting | Slide AUC | Slide ACC | Slide F1 | Patch AUPRC | Patch F1 | FROC |
 |---|---:|---:|---:|---:|---:|---:|
-| FocusMIL | No | No | 0.8534 (0.8305, 0.8763) | 0.8507 (0.8240, 0.8773) | 0.7967 (0.7782, 0.8151) | 0.8336 |
-| Top-k only | Yes | No | <u>0.8619 (0.8532, 0.8707)</u> | <u>0.8670 (0.8592, 0.8748)</u> | <u>0.8090 (0.7988, 0.8191)</u> | <u>0.8460</u> |
-| Neighbor only | No | Yes | 0.8483 (0.8166, 0.8800) | 0.8538 (0.8206, 0.8870) | 0.8051 (0.7795, 0.8306) | 0.8357 |
-| MaxN-MIL | Yes | Yes | **0.8628 (0.8518, 0.8738)** | **0.8687 (0.8573, 0.8800)** | **0.8123 (0.7983, 0.8263)** | **0.8479** |
+| C16 ResNet18 | 0.8151 +/- 0.0205 | 0.8422 +/- 0.0116 | 0.7503 +/- 0.0219 | 0.4478 +/- 0.0168 | 0.4353 +/- 0.0122 | 0.3882 +/- 0.0086 |
+| C16 CTransPath | 0.9593 +/- 0.0143 | 0.9437 +/- 0.0183 | 0.9240 +/- 0.0249 | 0.6633 +/- 0.0247 | 0.6475 +/- 0.0376 | 0.6612 +/- 0.0438 |
+| C17 ResNet18 | 0.8735 +/- 0.0077 | 0.8830 +/- 0.0057 | 0.8306 +/- 0.0096 | - | - | - |
 
-## Additional Camelyon17 PathGen AUC
+All baseline rows are in [main_results.csv](docs/main_results.csv), including the current attention-backbone C17 MHIM result. These are archived manuscript summaries, not new scores from this release check. Old PathGen and extra C17 ablation tables are no longer presented as current paper benchmarks; their research records are preserved.
 
-The following slide-level AUC results were obtained on Camelyon17 with PathGen feature bags over seeds 2020-2024.
+## Checks
 
-| Method | Slide-level AUC |
-|---|---:|
-| ABMIL | 0.9266 (0.9118, 0.9413) |
-| AEM | 0.9279 (0.9175, 0.9384) |
-| CATTMIL | 0.9367 (0.9226, 0.9509) |
-| TransMIL | 0.9202 (0.9084, 0.9320) |
-| MHIM | 0.9413 (0.9225, 0.9601) |
-| DTFD | 0.9394 (0.9209, 0.9579) |
-| Conjunctive | 0.9344 (0.9227, 0.9461) |
-| DSMIL | 0.9119 (0.8874, 0.9364) |
-| mi-Net | 0.9505 (0.9445, 0.9566) |
-| FocusMIL | <u>0.9550 (0.9457, 0.9643)</u> |
-| MaxN-MIL | **0.9602 (0.9544, 0.9660)** |
+```bash
+CUDA_VISIBLE_DEVICES='' python -m unittest discover -s tests -v
+```
 
-## Additional Camelyon17 PathGen Ablation
-
-The following ablation was run on Camelyon17 with PathGen feature bags over seeds 2020-2024. Slide Avg. denotes the mean over slide-level AUC, ACC, and F1.
-
-| Variant | Adaptive top-k | Neighbor expansion | Slide AUC | Slide ACC | Slide F1 | Slide Avg. |
-|---|---:|---:|---:|---:|---:|---:|
-| FocusMIL | No | No | 0.9550 (0.9457, 0.9643) | 0.9170 (0.9146, 0.9194) | 0.8883 (0.8855, 0.8911) | 0.9201 |
-| Top-k only | Yes | No | 0.9549 (0.9459, 0.9638) | **0.9210 (0.9132, 0.9288)** | 0.8952 (0.8861, 0.9043) | 0.9237 |
-| Neighbor only | No | Yes | **0.9611 (0.9544, 0.9678)** | 0.9180 (0.9130, 0.9230) | 0.8951 (0.8891, 0.9011) | 0.9247 |
-| MaxN-MIL | Yes | Yes | 0.9602 (0.9544, 0.9660) | **0.9210 (0.9145, 0.9275)** | **0.8971 (0.8904, 0.9038)** | **0.9261** |
-
-## Notes
-
-Raw WSIs, official challenge annotations, pretrained feature files, checkpoints, raw outputs, and external FROC evaluation-kit files are not redistributed in this repository. Users should obtain the original Camelyon data and compatible pre-extracted feature files following the data format described above.
+Tests use synthetic CPU data, do not train on Camelyon, and do not start GPU jobs.
 
 ## Citation
 

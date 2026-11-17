@@ -63,6 +63,9 @@ class AuxiliaryYAdaptiveTopK(nn.Module):
         if pooling == "max":
             return max_score, 1
 
+        if pooling == "mean":
+            return scores.mean(), int(scores.numel())
+
         if pooling == "fixed_topk":
             k_eff = min(max(1, self.topk), scores.numel())
             top_vals = torch.topk(scores, k=k_eff).values
@@ -672,10 +675,10 @@ if __name__ == '__main__':
     parser.add_argument('--early_stop_patience', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=3)
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints/c16_maxn')
-    parser.add_argument('--pooling', type=str, default=None, choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'],
+    parser.add_argument('--pooling', type=str, default=None, choices=['max', 'mean', 'fixed_topk', 'adaptive_topk', 'anchor_mean'],
                         help='Deprecated alias for --train_pooling.')
-    parser.add_argument('--train_pooling', type=str, default='adaptive_topk', choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
-    parser.add_argument('--eval_pooling', type=str, default='max', choices=['max', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
+    parser.add_argument('--train_pooling', type=str, default='adaptive_topk', choices=['max', 'mean', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
+    parser.add_argument('--eval_pooling', type=str, default='max', choices=['max', 'mean', 'fixed_topk', 'adaptive_topk', 'anchor_mean'])
     parser.add_argument('--topk', type=int, default=5)
     parser.add_argument('--topk_max', type=int, default=16)
     parser.add_argument('--adaptive_gamma', type=float, default=0.5)
